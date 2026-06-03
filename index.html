@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Robot Compass</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    text-align:center;
+    margin:0;
+    padding:20px;
+}
+
+#compass{
+    position:relative;
+    width:320px;
+    height:320px;
+    margin:auto;
+    border:4px solid black;
+    border-radius:50%;
+}
+
+.arrow{
+    position:absolute;
+    left:50%;
+    bottom:50%;
+    width:6px;
+    height:130px;
+    transform-origin:bottom center;
+    margin-left:-3px;
+}
+
+#robot{
+    background:red;
+}
+
+#phone{
+    background:blue;
+}
+
+.cardinal{
+    position:absolute;
+    font-size:22px;
+    font-weight:bold;
+}
+
+#north{top:10px;left:50%;transform:translateX(-50%);}
+#south{bottom:10px;left:50%;transform:translateX(-50%);}
+#east{right:10px;top:50%;transform:translateY(-50%);}
+#west{left:10px;top:50%;transform:translateY(-50%);}
+
+button{
+    font-size:18px;
+    padding:12px;
+    margin:5px;
+}
+
+.info{
+    margin-top:10px;
+    font-size:18px;
+}
+
+</style>
+</head>
+<body>
+
+<h2>Brújula Robot</h2>
+
+<div id="compass">
+
+    <div id="north" class="cardinal">N</div>
+    <div id="south" class="cardinal">S</div>
+    <div id="east" class="cardinal">E</div>
+    <div id="west" class="cardinal">O</div>
+
+    <div id="robot" class="arrow"></div>
+    <div id="phone" class="arrow"></div>
+
+</div>
+
+<div class="info">
+Robot:
+<span id="robotDeg">0</span>°
+</div>
+
+<div class="info">
+Teléfono:
+<span id="phoneDeg">0</span>°
+</div>
+
+<div class="info">
+Δ:
+<span id="deltaDeg">0</span>°
+</div>
+
+<br>
+
+<button onclick="robotYaw-=10">↺ Robot</button>
+<button onclick="robotYaw+=10">↻ Robot</button>
+
+<button onclick="syncOrientation()">
+Sincronizar
+</button>
+
+<button onclick="enableSensors()">
+Activar sensores
+</button>
+
+<script>
+
+let robotYaw = 0;
+let phoneYaw = 0;
+let offset = 0;
+
+function updateCompass()
+{
+    document.getElementById("robot").style.transform =
+        `rotate(${robotYaw}deg)`;
+
+    document.getElementById("phone").style.transform =
+        `rotate(${phoneYaw}deg)`;
+
+    document.getElementById("robotDeg").innerText =
+        Math.round(robotYaw);
+
+    document.getElementById("phoneDeg").innerText =
+        Math.round(phoneYaw);
+
+    let delta = robotYaw - phoneYaw;
+
+    while(delta > 180) delta -= 360;
+    while(delta < -180) delta += 360;
+
+    document.getElementById("deltaDeg").innerText =
+        Math.round(delta);
+}
+
+function syncOrientation()
+{
+    offset = robotYaw - phoneYaw;
+}
+
+function handleOrientation(event)
+{
+    if(event.alpha !== null)
+    {
+        phoneYaw = event.alpha + offset;
+    }
+}
+
+async function enableSensors()
+{
+    try
+    {
+        if(
+            typeof DeviceOrientationEvent !== "undefined"
+            &&
+            typeof DeviceOrientationEvent.requestPermission === "function"
+        )
+        {
+            const permission =
+                await DeviceOrientationEvent.requestPermission();
+
+            if(permission !== "granted")
+                return;
+        }
+
+        window.addEventListener(
+            "deviceorientation",
+            handleOrientation
+        );
+
+        alert("Sensores activados");
+    }
+    catch(err)
+    {
+        alert(err);
+    }
+}
+
+setInterval(updateCompass,50);
+
+</script>
+
+</body>
+</html>
