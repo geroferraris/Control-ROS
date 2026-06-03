@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Robot Compass</title>
+<title>Andino Teleop</title>
 
 <style>
 
@@ -12,13 +12,15 @@ body{
     font-family: Arial, sans-serif;
     text-align:center;
     margin:0;
-    padding:20px;
+    padding:10px;
+    user-select:none;
+    -webkit-user-select:none;
 }
 
 #compass{
     position:relative;
-    width:320px;
-    height:320px;
+    width:280px;
+    height:280px;
     margin:auto;
     border:4px solid black;
     border-radius:50%;
@@ -29,7 +31,7 @@ body{
     left:50%;
     bottom:50%;
     width:6px;
-    height:130px;
+    height:110px;
     transform-origin:bottom center;
     margin-left:-3px;
 }
@@ -44,31 +46,60 @@ body{
 
 .cardinal{
     position:absolute;
-    font-size:22px;
+    font-size:20px;
     font-weight:bold;
 }
 
-#north{top:10px;left:50%;transform:translateX(-50%);}
-#south{bottom:10px;left:50%;transform:translateX(-50%);}
-#east{right:10px;top:50%;transform:translateY(-50%);}
-#west{left:10px;top:50%;transform:translateY(-50%);}
-
-button{
-    font-size:18px;
-    padding:12px;
-    margin:5px;
-}
+#north{top:5px;left:50%;transform:translateX(-50%);}
+#south{bottom:5px;left:50%;transform:translateX(-50%);}
+#east{right:5px;top:50%;transform:translateY(-50%);}
+#west{left:5px;top:50%;transform:translateY(-50%);}
 
 .info{
-    margin-top:10px;
+    margin-top:8px;
     font-size:18px;
+}
+
+.slider-container{
+    margin:15px;
+}
+
+input[type="range"]{
+    width:250px;
+}
+
+#controls{
+    width:320px;
+    margin:auto;
+    margin-top:20px;
+
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:8px;
+}
+
+.ctrl{
+    height:80px;
+    font-size:32px;
+    touch-action:none;
+}
+
+#cmd{
+    margin-top:15px;
+    font-size:28px;
+    font-weight:bold;
+}
+
+button{
+    margin:5px;
+    padding:10px;
 }
 
 </style>
 </head>
 <body>
 
-<h2>Brújula Robot</h2>
+<h2>Andino Teleop</h2>
 
 <div id="compass">
 
@@ -99,22 +130,87 @@ Teléfono:
 
 <br>
 
-<button onclick="robotYaw-=10">↺ Robot</button>
-<button onclick="robotYaw+=10">↻ Robot</button>
+<button onclick="enableSensors()">
+Activar sensores
+</button>
+
+<button onclick="disableSensors()">
+Desactivar sensores
+</button>
 
 <button onclick="syncOrientation()">
 Sincronizar
 </button>
 
-<button onclick="enableSensors()">
-Activar sensores
-</button>
+<div class="slider-container">
+
+Velocidad lineal
+
+<br>
+
+<input
+    type="range"
+    id="linear"
+    min="0"
+    max="1"
+    step="0.01"
+    value="0.20">
+
+<br>
+
+<span id="linearValue">0.20</span>
+
+</div>
+
+<div class="slider-container">
+
+Velocidad angular
+
+<br>
+
+<input
+    type="range"
+    id="angular"
+    min="0"
+    max="2"
+    step="0.01"
+    value="0.80">
+
+<br>
+
+<span id="angularValue">0.80</span>
+
+</div>
+
+<div id="controls">
+
+<button class="ctrl" data-cmd="↖">↖</button>
+<button class="ctrl" data-cmd="↑">↑</button>
+<button class="ctrl" data-cmd="↗">↗</button>
+
+<button class="ctrl" data-cmd="←">←</button>
+<button class="ctrl" data-cmd="■">■</button>
+<button class="ctrl" data-cmd="→">→</button>
+
+<button class="ctrl" data-cmd="↙">↙</button>
+<button class="ctrl" data-cmd="↓">↓</button>
+<button class="ctrl" data-cmd="↘">↘</button>
+
+</div>
+
+<div id="cmd">
+Comando: ■
+</div>
 
 <script>
 
 let robotYaw = 0;
 let phoneYaw = 0;
 let offset = 0;
+
+let sensorEnabled = false;
+
+let currentCommand = "■";
 
 function updateCompass()
 {
@@ -137,6 +233,9 @@ function updateCompass()
 
     document.getElementById("deltaDeg").innerText =
         Math.round(delta);
+
+    document.getElementById("cmd").innerText =
+        "Comando: " + currentCommand;
 }
 
 function syncOrientation()
@@ -146,6 +245,8 @@ function syncOrientation()
 
 function handleOrientation(event)
 {
+    if(!sensorEnabled) return;
+
     if(event.alpha !== null)
     {
         phoneYaw = event.alpha + offset;
@@ -169,6 +270,8 @@ async function enableSensors()
                 return;
         }
 
+        sensorEnabled = true;
+
         window.addEventListener(
             "deviceorientation",
             handleOrientation
@@ -182,7 +285,95 @@ async function enableSensors()
     }
 }
 
+function disableSensors()
+{
+    sensorEnabled = false;
+}
+
+document
+.getElementById("linear")
+.oninput = function()
+{
+    document.getElementById("linearValue")
+    .innerText = this.value;
+};
+
+document
+.getElementById("angular")
+.oninput = function()
+{
+    document.getElementById("angularValue")
+    .innerText = this.value;
+};
+
+document
+.querySelectorAll(".ctrl")
+.forEach(btn =>
+{
+    const start = () =>
+    {
+        currentCommand =
+            btn.dataset.cmd;
+
+        switch(currentCommand)
+        {
+            case "←":
+                robotYaw -= 5;
+                break;
+
+            case "→":
+                robotYaw += 5;
+                break;
+
+            case "↖":
+                robotYaw -= 5;
+                break;
+
+            case "↗":
+                robotYaw += 5;
+                break;
+
+            case "↙":
+                robotYaw -= 5;
+                break;
+
+            case "↘":
+                robotYaw += 5;
+                break;
+        }
+    };
+
+    const stop = () =>
+    {
+        currentCommand = "■";
+    };
+
+    btn.addEventListener("touchstart", start);
+    btn.addEventListener("touchend", stop);
+
+    btn.addEventListener("mousedown", start);
+    btn.addEventListener("mouseup", stop);
+});
+
 setInterval(updateCompass,50);
+
+/* #########################################################
+   #########################################################
+   #########################################################
+
+   FUTURO ROS 2
+
+   CAMBIAR AQUÍ EL TOPIC DEL ROBOT
+
+   const CMD_VEL_TOPIC = "/cmd_vel";
+
+   CAMBIAR AQUÍ EL TOPIC DE ODOMETRÍA
+
+   const ODOM_TOPIC = "/odom";
+
+   #########################################################
+   #########################################################
+   ######################################################### */
 
 </script>
 
